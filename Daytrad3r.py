@@ -3,8 +3,10 @@ import gdax
 
 stuff = []
 
-with open("~/Documents/.idek") as f:
-    for line in f.readLines():
+with open(".idek") as f:
+    for line in f.readlines():
         stuff.append(line.rstrip())
 
-print stuff
+auth_client = gdax.AuthenticatedClient(stuff[1], stuff[2], stuff[0])
+
+print(auth_client.get_accounts())
