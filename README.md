@@ -1,2 +1,2 @@
 # Daytrad3r
-Automate day trading of cryptocurrencies using the GDAX API.
+A machine learning approach to estimating changes in the cryptocurrency markets.
