@@ -3,9 +3,10 @@ import csv
 import numpy as np
 import pickle
 from collections import Counter
+import math
 
 '''
-Timestamp, Open, High, Low,	Close, Volume_(BTC), Timestamp, Open
+Timestamp, Open, High, Low,	Close, Volume_(BTC), Volume_(Currency)
 '''
 def sample_handling():
 
@@ -13,44 +14,104 @@ def sample_handling():
 
     with open("data.csv", 'rt') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
+
+        current_high = 0.0
+        current_low = 0.0
+        current_open = 0.0
+        current_close = 0.0
+        current_volume_btc = 0.0
+        current_volume_currency = 0.0
+        current_net_change = 0.0 #will become difference between current_open and current_close
+
+        prev_high = 0.0
+        prev_low = 0.0
+        prev_open = 0.0
+        prev_close = 0.0
+        prev_volume_btc = 0.0
+        prev_volume_currency = 0.0
+        prev_delta_high = 0.0
+
+        delta_high = 0.0
+        delta_low = 0.0
+        delta_open = 0.0
+        delta_close = 0.0
+        delta_volume_btc = 0.0
+        delta_volume_currency = 0.0
+
+        counter = 0
+
+        indicator = 0 # -1 for bad, 0 for ok, 1 for good
+
         for row in reader:
-            featureset.append([row[1], row[2], row[3], row[4], row[5], row[6], row[7]])
+            #set current variables to current values from row
+            current_high = float(row[2])
+            current_low = float(row[3])
+            current_open = float(row[1])
+            current_close = float(row[4])
+            current_volume_btc = float(row[5])
+            current_volume_currency = float(row[6])
+            if counter > 0:
+                #calculated delta values
+                delta_high = (current_high - prev_high)/prev_high
+                delta_low = (current_low - prev_low)/prev_low
+                delta_open = (current_open - prev_open)/prev_open
+                detla_close = (current_close - prev_close)/prev_open
+                delta_volume_btc = (current_volume_btc - prev_volume_btc)/prev_volume_btc
+                delta_volume_currency = (current_volume_currency - prev_volume_currency)/prev_volume_currency
+                #calculate current change values
+                current_net_change = (current_close - current_open)/current_open
+                #append the vector the the list featureset
+                #featureset.append([delta_high, delta_low, delta_open, delta_close, delta_volume_btc, delta_volume_currency, current_net_change])
+                #assign indicator here
+                if prev_delta_high <= 0:
+                    indicator = -1
+                elif prev_delta_high > 0 and prev_delta_high < 1:
+                    indicator = 0
+                else:
+                    indicator = 1
+                featureset.append([[prev_delta_high, prev_high], [indicator, current_high]])
+
+            #set previous values to current so that they are ready for the next loop through
+            prev_high = current_high
+            prev_low = current_low
+            prev_open = current_open
+            prev_close = current_close
+            prev_volume_btc = current_volume_btc
+            prev_volume_currency = current_volume_currency
+            prev_delta_high = delta_high
+
+            #increment counter
+            counter += 1
 
         return featureset
 
 
 def create_feature_sets_and_labels(test_size=0.1):
-    features = sample_handling()
+    features = sample_handling() #2d array
 
-    features = np.array(features)
+    # features = np.array(features)
+    #
+    # testing_size = int(test_size * len(features))
+    #
+    # train_x = list(features[:,0][:-testing_size])
+    # train_y = list(features[:,1][:-testing_size])
+    #
+    # test_x = list(features[:,0][-testing_size:])
+    # test_y = list(features[:,1][-testing_size:])
 
-    testing_size = int(test_size * len(features))
+    train_x = []
+    train_y = []
+    test_x = []
+    test_y = []
 
-    train_a = list(features[:,0][:-testing_size])
-    train_b = list(features[:,1][:-testing_size])
-    train_c = list(features[:,2][:-testing_size])
-    train_d = list(features[:,3][:-testing_size])
-    train_e = list(features[:,4][:-testing_size])
-    train_f = list(features[:,5][:-testing_size])
-    train_g = list(features[:,6][:-testing_size])
+    for value in range(0, int(math.floor((1-test_size)*len(features)))):
+        train_x.append(features[value][0])
+        train_y.append(features[value][1])
 
-    test_a = list(features[:,0][-testing_size:])
-    test_b = list(features[:,1][-testing_size:])
-    test_c = list(features[:,2][-testing_size:])
-    test_d = list(features[:,3][-testing_size:])
-    test_e = list(features[:,4][-testing_size:])
-    test_f = list(features[:,5][-testing_size:])
-    test_g = list(features[:,6][-testing_size:])
+    for value in range(0, int(math.ceil(test_size*len(features)))):
+        test_x.append(features[value][0])
+        test_y.append(features[value][1])
 
-    return [train_a, train_b, train_c, train_d, train_e, train_f, train_g, test_a, test_b, test_c, test_d, test_e, test_f, test_g]
+    print(test_x)
 
-
-if __name__ == '__main__':
-    train = create_feature_sets_and_labels()
-    #train_a , train_b , train_c , train_d , train_e , train_f , train_g , test_a , test_b , test_c , test_d , test_e , test_f , test_g = create_feature_sets_and_labels()
-    for i in range(1,50):
-        for l in range(0,7):
-            print(train[l][i])
-    #train_x, train_y, test_x, test_y = create_feature_sets_and_labels('positive.txt', 'negative.txt')
-    # with open('sentiment_set.pickle', 'wb') as f:
-    #     pickle.dump([train_x, train_y, test_x, test_y], f)
+    return train_x, train_y, test_x, test_y
